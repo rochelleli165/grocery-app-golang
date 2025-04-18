@@ -1,0 +1,29 @@
+syntax = "proto3";
+package pb;
+option go_package = "./pb";
+
+message GetUserAdsRequest {
+	int32 user_id = 1;
+}
+
+message GetUserAdsResponse {
+    repeated Ad ads = 1;
+}
+
+message Ad {
+	string store_name = 1;
+	string store_address = 2;
+	repeated AdItemData ad_items = 3;
+}
+
+message AdItemData {
+	string ingredient = 1;
+	string name = 2;
+	optional float price = 3;
+	optional string sale = 4;
+	string ingredient_type = 5;
+}
+
+service UserFeedService {
+	rpc GetUserAds(GetUserAdsRequest) returns (GetUserAdsResponse);
+}

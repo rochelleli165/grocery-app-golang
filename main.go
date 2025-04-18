@@ -2,11 +2,15 @@ package main
 
 import (
 	"backend/main/config"
-	"backend/main/routes"
+
+	"backend/main/controllers"
 	"context"
 
 	"fmt"
-	"net/http"
+
+	"google.golang.org/grpc"
+	"backend/main/pb"
+	"net"
 )
 
 func main() {
@@ -20,11 +24,19 @@ func main() {
 		return
 	}
 
-	router := routes.RegisterRoutes()
-	fmt.Println("Server is running on port 8080")
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		fmt.Println("Failed to start server", err)
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		fmt.Println("Failed to listen:", err)
 		return
 	}
-	
+
+	grpcServer := grpc.NewServer()
+
+	userFeedService := controllers.InitUserFeedController()
+	pb.RegisterUserFeedServiceServer(grpcServer, userFeedService)
+
+	fmt.Println("gRPC server running on :50051")
+	if err := grpcServer.Serve(lis); err != nil {
+		fmt.Println("failed to serve: %v", err)
+	}
 }

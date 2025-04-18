@@ -30,7 +30,7 @@ func (sc *StoreController) AddStore(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = sc.StoreModel.AddStore(store)
+	err = sc.StoreModel.CreateStore(store)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -46,14 +46,17 @@ func (sc *StoreController) SubscribeStore(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
-	var store models.Store
-	err = json.NewDecoder(r.Body).Decode(&store)
+	storeID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		config.Logger.Error("Error getting Firestore client", zap.Error(err), zap.String("function", "SubscribeStore"))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = sc.StoreModel.SubscribeStore(uint(userID), store)
+	err = sc.StoreModel.SubscribeStore(uint(userID), uint(storeID))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -62,21 +65,8 @@ func (sc *StoreController) SubscribeStore(w http.ResponseWriter, r *http.Request
 }
 
 // GetSubscriptions returns all store_ids of a subscried stores given user_id
-func (sc *StoreController) GetSubscriptions(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("user_id")
-	userID, err := strconv.ParseUint(id, 10, 32)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-	stores, err := sc.StoreModel.GetSubscriptions(uint(userID))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(stores)
+func (sc *StoreController) GetSubscribedStores(w http.ResponseWriter, r *http.Request) {
+	
 }
 
 

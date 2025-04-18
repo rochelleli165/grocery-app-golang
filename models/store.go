@@ -90,3 +90,50 @@ func (i *StoreModel) GetExpiredAdStores() (stores []Store, err error) {
 	return stores, nil
 }
 
+// SubscribeStore to add to store_subscription
+func (i *StoreModel) SubscribeStore(userID uint, storeID uint) error {
+	query := `INSERT INTO store_subscription (user_id, store_id) VALUES ($1, $2)`
+	_, err := i.PostgreSQL.Exec(context.Background(), query, userID, storeID)
+	if err != nil {
+		i.Logger.Error("Error subscribing to store", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// UnsubscribeStore to remove from store_subscription
+func (i *StoreModel) UnsubscribeStore(userID uint, storeID uint) error {
+	query := `DELETE FROM store_subscription WHERE user_id = $1 AND store_id = $2`
+	_, err := i.PostgreSQL.Exec(context.Background(), query, userID, storeID)
+	if err != nil {
+		i.Logger.Error("Error unsubscribing from store", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// GetSubscribedStores to get all stores subscribed by user given userID
+func (i *StoreModel) GetSubscribedStores(userID uint) ([]Store, error) {
+	var stores []Store
+	rows, err := i.PostgreSQL.Query(context.Background(),
+		"SELECT s.id, s.name, s.location FROM store_subscription ss INNER JOIN store s ON ss.store_id = s.id WHERE ss.user_id = $1", userID)
+	if err != nil {
+		i.Logger.Error("Error getting subscribed stores", zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var store Store
+		err := rows.Scan(&store.ID, &store.Name, &store.Location)
+		if err != nil {
+			i.Logger.Error("Error scanning subscribed store(s)", zap.Error(err))
+			return nil, err
+		}
+		stores = append(stores, store)
+	}
+
+	return stores, nil
+}
+
+

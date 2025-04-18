@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 
-
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
@@ -97,15 +96,17 @@ func (i *AdModel) CreateAd(ad Ad) error {
 
 }
 
-func (i * AdModel) GetRecentAd(adID uint) (ad Ad, err error) {
+// GetRecentAd
+func (i * AdModel) GetRecentAd(storeID uint) (ad Ad, err error) {
+
 	err = i.PostgreSQL.QueryRow(context.Background(), 
-		"SELECT id, store_id, sale_start, sale_end FROM ad WHERE id = $1 sort by sale_start desc limit 1", adID).Scan(&ad.ID, &ad.StoreID, &ad.SaleStart, &ad.SaleEnd)
+		"SELECT id, store_id, sale_start::text, sale_end::text FROM ad WHERE store_id = $1 order by sale_start desc limit 1", storeID).Scan(&ad.ID, &ad.StoreID, &ad.SaleStart, &ad.SaleEnd)
 	if err != nil {
 		i.Logger.Error("Error getting ad by ID", zap.Error(err))
 		return Ad{}, err
 	}
 	rows, err := i.PostgreSQL.Query(context.Background(),
-		"SELECT id, ingredient_id, name, price, sale FROM ad_ingredient WHERE ad_id = $1", adID)
+		"SELECT ingredient_id, name, price, sale FROM ad_ingredient WHERE ad_id = $1", ad.ID)
 	if err != nil {
 		i.Logger.Error("Error getting ad ingredients", zap.Error(err))
 		return Ad{}, err
@@ -113,7 +114,7 @@ func (i * AdModel) GetRecentAd(adID uint) (ad Ad, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		var ai AdIngredient
-		err := rows.Scan(&ai.ID, &ai.IngredientID, &ai.Name, &ai.Price, &ai.Sale)
+		err := rows.Scan(&ai.IngredientID, &ai.Name, &ai.Price, &ai.Sale)
 		if err != nil {
 			i.Logger.Error("Error scanning row", zap.Error(err))
 			return Ad{}, err
